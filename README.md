@@ -1,4 +1,4 @@
-# Assignment 4: Global Illumination
+# Assignment 3: Basic Ray Tracing
 
 Name: 娄创 
 Student ID: 2023533031 
@@ -7,7 +7,7 @@ Student ID: 2023533031
 
 ## Deadline
 
-**November 30, 2022, 22:00 UTC+8**
+**November 21, 2025, 22:00 UTC+8**
 
 ## Statement
 
@@ -18,4 +18,5 @@ Refer to [course page](https://faculty.sist.shanghaitech.edu.cn/faculty/liuxp/co
 The skeleton program and report template will be provided once you accept the assignment link of GitHub classroom which we published in piazza. If you accept the assignment through link properly, a repository which contains the skeleton project and report template will be created under your GitHub account. Please follow the template to prepare your report.
 
 You should complete your assignment submission to your repository through GitHub before the deadline.
+
 
