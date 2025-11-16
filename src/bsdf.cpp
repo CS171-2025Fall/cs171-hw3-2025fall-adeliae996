@@ -7,8 +7,8 @@
 
 RDR_NAMESPACE_BEGIN
 
-static Vec3f obtainOrientedNormal(
-    const SurfaceInteraction &interaction, bool twosided) {
+static Vec3f obtainOrientedNormal(const SurfaceInteraction &interaction,
+                                  bool twosided) {
   AssertAllValid(interaction.shading.n);
   AssertAllNormalized(interaction.shading.n);
   return twosided && interaction.cosThetaO() < 0 ? -interaction.shading.n
@@ -24,7 +24,7 @@ static Vec3f obtainOrientedNormal(
 void IdealDiffusion::crossConfiguration(
     const CrossConfigurationContext &context) {
   auto texture_name = properties.getProperty<std::string>("texture_name");
-  auto texture_ptr  = context.textures.find(texture_name);
+  auto texture_ptr = context.textures.find(texture_name);
   if (texture_ptr != context.textures.end()) {
     texture = texture_ptr->second;
   } else {
@@ -46,16 +46,14 @@ Float IdealDiffusion::pdf(SurfaceInteraction &interaction) const {
   UNIMPLEMENTED;
 }
 
-Vec3f IdealDiffusion::sample(
-    SurfaceInteraction &interaction, Sampler &sampler, Float *out_pdf) const {
+Vec3f IdealDiffusion::sample(SurfaceInteraction &interaction, Sampler &sampler,
+                             Float *out_pdf) const {
   // This is left as the next assignment
   UNIMPLEMENTED;
 }
 
 /// return whether the bsdf is perfect transparent or perfect reflection
-bool IdealDiffusion::isDelta() const {
-  return false;
-}
+bool IdealDiffusion::isDelta() const { return false; }
 
 /* ===================================================================== *
  *
@@ -72,12 +70,10 @@ Vec3f PerfectRefraction::evaluate(SurfaceInteraction &) const {
   return {0.0, 0.0, 0.0};
 }
 
-Float PerfectRefraction::pdf(SurfaceInteraction &) const {
-  return 0;
-}
+Float PerfectRefraction::pdf(SurfaceInteraction &) const { return 0; }
 
-Vec3f PerfectRefraction::sample(
-    SurfaceInteraction &interaction, Sampler &sampler, Float *pdf) const {
+Vec3f PerfectRefraction::sample(SurfaceInteraction &interaction,
+                                Sampler &sampler, Float *pdf) const {
   // The interface normal
   Vec3f normal = interaction.shading.n;
   // Cosine of the incident angle
@@ -87,33 +83,17 @@ Vec3f PerfectRefraction::sample(
   // Corrected eta by direction
   Float eta_corrected = entering ? eta : 1.0F / eta;
 
-  // TODO(HW3): implement the refraction logic here.
-  //
-  // You should set the `interaction.wi` to the direction of the "in-coming
-  // light" after refraction or reflection. Note that `interaction.wi` should
-  // always point away from the surface.
-  //
-  // You may find the following values useful:
-  //
-  // `interaction.wo`: the out-going view direction, pointing away from the
-  // surface.
-  // `normal`: the normal of the surface at the interaction point, pointing
-  // away from the surface.
-  //
-  // You may find the following functions useful:
-  // @see Refract for refraction calculation.
-  // @see Reflect for reflection calculation.
-
-  UNIMPLEMENTED;
+  if (!Refract(interaction.wo, normal, eta_corrected, interaction.wi)) {
+    interaction.wi = Reflect(interaction.wo, normal);
+  }
 
   // Set the pdf and return value, we dont need to understand the value now
-  if (pdf != nullptr) *pdf = 1.0F;
+  if (pdf != nullptr)
+    *pdf = 1.0F;
   return Vec3f(1.0);
 }
 
-bool PerfectRefraction::isDelta() const {
-  return true;
-}
+bool PerfectRefraction::isDelta() const { return true; }
 
 /* ===================================================================== *
  *
@@ -124,8 +104,7 @@ bool PerfectRefraction::isDelta() const {
 Glass::Glass(const Properties &props)
     : R(props.getProperty<Vec3f>("R", Vec3f(1.0))),
       T(props.getProperty<Vec3f>("T", Vec3f(1.0))),
-      eta(props.getProperty<Float>("eta", 1.5F)),
-      BSDF(props) {}
+      eta(props.getProperty<Float>("eta", 1.5F)), BSDF(props) {}
 
 Vec3f Glass::evaluate(SurfaceInteraction &) const {
   // Since this is a delta distribution, it has no contribution to the queried
@@ -133,19 +112,15 @@ Vec3f Glass::evaluate(SurfaceInteraction &) const {
   return {0.0, 0.0, 0.0};
 }
 
-Float Glass::pdf(SurfaceInteraction &) const {
-  return 0;
-}
+Float Glass::pdf(SurfaceInteraction &) const { return 0; }
 
-Vec3f Glass::sample(
-    SurfaceInteraction &interaction, Sampler &sampler, Float *pdf) const {
+Vec3f Glass::sample(SurfaceInteraction &interaction, Sampler &sampler,
+                    Float *pdf) const {
   // This is left as the next assignment
   UNIMPLEMENTED;
 }
 
-bool Glass::isDelta() const {
-  return true;
-}
+bool Glass::isDelta() const { return true; }
 
 /* ===================================================================== *
  *
@@ -156,7 +131,7 @@ bool Glass::isDelta() const {
 void MicrofacetReflection::crossConfiguration(
     const CrossConfigurationContext &context) {
   auto texture_name = properties.getProperty<std::string>("texture_name");
-  auto texture_ptr  = context.textures.find(texture_name);
+  auto texture_ptr = context.textures.find(texture_name);
   if (texture_ptr != context.textures.end()) {
     R = texture_ptr->second;
   } else {
@@ -171,7 +146,7 @@ MicrofacetReflection::MicrofacetReflection(const Properties &props)
       etaI(props.getProperty<Vec3f>("etaI", Vec3f(1.0F))),
       etaT(props.getProperty<Vec3f>("etaT", Vec3f(1.0F))),
       dist(props.getProperty<Float>("alpha_x", 0.1),
-          props.getProperty<Float>("alpha_y", 0.1)),
+           props.getProperty<Float>("alpha_y", 0.1)),
       BSDF(props) {}
 
 Vec3f MicrofacetReflection::evaluate(SurfaceInteraction &interaction) const {
@@ -184,15 +159,13 @@ Float MicrofacetReflection::pdf(SurfaceInteraction &interaction) const {
   UNIMPLEMENTED;
 }
 
-Vec3f MicrofacetReflection::sample(
-    SurfaceInteraction &interaction, Sampler &sampler, Float *pdf_in) const {
+Vec3f MicrofacetReflection::sample(SurfaceInteraction &interaction,
+                                   Sampler &sampler, Float *pdf_in) const {
   // This is left as the next assignment
   UNIMPLEMENTED;
 }
 
 /// return whether the bsdf is perfect transparent or perfect reflection
-bool MicrofacetReflection::isDelta() const {
-  return false;
-}
+bool MicrofacetReflection::isDelta() const { return false; }
 
 RDR_NAMESPACE_END
