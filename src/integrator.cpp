@@ -108,32 +108,38 @@ Vec3f IntersectionTestIntegrator::Li(ref<Scene> scene, DifferentialRay &ray,
 Vec3f IntersectionTestIntegrator::directLighting(
     ref<Scene> scene, SurfaceInteraction &interaction) const {
   Vec3f color(0, 0, 0);
-  Float dist_to_light = Norm(point_light_position - interaction.p);
-  Vec3f light_dir = Normalize(point_light_position - interaction.p);
-  auto test_ray = DifferentialRay(interaction.p, light_dir);
 
-  SurfaceInteraction shadow_interaction;
-  if (scene->intersect(test_ray, shadow_interaction)) {
-    if (Norm(shadow_interaction.p - interaction.p) < dist_to_light - 1e-3f) {
-      return color; // Occluded
+  // Extract common lighting calculation function
+  auto computeLightContribution = [&](const Vec3f &light_pos,
+                                      const Vec3f &light_flux) -> Vec3f {
+    Float dist_to_light = Norm(light_pos - interaction.p);
+    Vec3f light_dir = Normalize(light_pos - interaction.p);
+    auto test_ray = DifferentialRay(interaction.p, light_dir);
+
+    SurfaceInteraction shadow_interaction;
+    if (scene->intersect(test_ray, shadow_interaction)) {
+      if (Norm(shadow_interaction.p - interaction.p) < dist_to_light - 1e-4f) {
+        return Vec3f(0, 0, 0); // Occluded
+      }
     }
-  }
 
-  // Not occluded, compute the contribution using perfect diffuse diffuse model
-  // Perform a quick and dirty check to determine whether the BSDF is ideal
-  // diffuse by RTTI
-  const BSDF *bsdf = interaction.bsdf;
-  bool is_ideal_diffuse = dynamic_cast<const IdealDiffusion *>(bsdf) != nullptr;
+    // Not occluded, calculate contribution
+    const BSDF *bsdf = interaction.bsdf;
+    bool is_ideal_diffuse =
+        dynamic_cast<const IdealDiffusion *>(bsdf) != nullptr;
 
-  if (bsdf != nullptr && is_ideal_diffuse) {
+    if (bsdf != nullptr && is_ideal_diffuse) {
+      Float cos_theta = std::max(Dot(light_dir, interaction.normal), 0.0f);
+      return bsdf->evaluate(interaction) * cos_theta * light_flux /
+             (4.0f * PI * dist_to_light * dist_to_light);
+    }
 
-    // The angle between light direction and surface normal
-    Float cos_theta =
-        std::max(Dot(light_dir, interaction.normal), 0.0f); // one-sided
+    return Vec3f(0, 0, 0);
+  };
 
-    // You should assign the value to color
-    color = bsdf->evaluate(interaction) * cos_theta;
-  }
+  // Calculate contributions from both light sources
+  color += computeLightContribution(point_light_position1, point_light_flux1);
+  color += computeLightContribution(point_light_position2, point_light_flux2);
 
   return color;
 }
