@@ -88,8 +88,7 @@ public:
   }
 
   /// @brief Compute direct lighting at the interaction point
-  Vec3f directLighting(ref<Scene> scene, SurfaceInteraction &interaction,
-                       Sampler &sampler) const;
+  Vec3f directLighting(ref<Scene> scene, SurfaceInteraction &interaction) const;
 
 protected:
   /// The position of the point light
