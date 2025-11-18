@@ -136,12 +136,12 @@ Vec3f IntersectionTestIntegrator::Li(ref<Scene> scene, DifferentialRay &ray,
     return color;
   }
 
-  color = directLighting(scene, interaction, sampler);
+  color = directLighting(scene, interaction);
   return color;
 }
 
 Vec3f IntersectionTestIntegrator::directLighting(
-    ref<Scene> scene, SurfaceInteraction &interaction, Sampler &sampler) const {
+    ref<Scene> scene, SurfaceInteraction &interaction) const {
   Vec3f color(0, 0, 0);
 
   // Extract common lighting calculation function for point lights
