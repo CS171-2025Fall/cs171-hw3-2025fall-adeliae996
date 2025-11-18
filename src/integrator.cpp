@@ -79,6 +79,41 @@ Vec3f IntersectionTestIntegrator::Li(ref<Scene> scene, DifferentialRay &ray,
       break;
     }
 
+    // Check if the intersection point is within the emissive rectangle
+    if (area_light_positions.size() == 4) {
+      const Vec3f &p = interaction.p;
+
+      // Create plane equation from three points of the rectangle
+      const Vec3f &a = area_light_positions[0];
+      const Vec3f &b = area_light_positions[1];
+      const Vec3f &c = area_light_positions[2];
+
+      // Calculate normal of the rectangle plane
+      Vec3f normal = Normalize(Cross(b - a, c - a));
+
+      // Check if point lies on the plane
+      Float distance = Dot(p - a, normal);
+      if (std::abs(distance) < 1e-4f) {
+        // Project point onto 2D coordinate system of the rectangle
+        Vec3f u_axis = Normalize(b - a);
+        Vec3f v_axis = Normalize(c - b);
+
+        Vec3f local_p = p - a;
+        Float u_coord = Dot(local_p, u_axis);
+        Float v_coord = Dot(local_p, v_axis);
+
+        // Check if point is within bounds of the rectangle
+        Float u_length = Norm(b - a);
+        Float v_length = Norm(c - b);
+
+        if (u_coord >= 0 && u_coord <= u_length && v_coord >= 0 &&
+            v_coord <= v_length) {
+          // Point is within the emissive rectangle
+          return area_light_flux;
+        }
+      }
+    }
+
     if (is_perfect_refraction) {
       // We should follow the specular direction
       Float *pdf;
@@ -101,17 +136,17 @@ Vec3f IntersectionTestIntegrator::Li(ref<Scene> scene, DifferentialRay &ray,
     return color;
   }
 
-  color = directLighting(scene, interaction);
+  color = directLighting(scene, interaction, sampler);
   return color;
 }
 
 Vec3f IntersectionTestIntegrator::directLighting(
-    ref<Scene> scene, SurfaceInteraction &interaction) const {
+    ref<Scene> scene, SurfaceInteraction &interaction, Sampler &sampler) const {
   Vec3f color(0, 0, 0);
 
-  // Extract common lighting calculation function
-  auto computeLightContribution = [&](const Vec3f &light_pos,
-                                      const Vec3f &light_flux) -> Vec3f {
+  // Extract common lighting calculation function for point lights
+  auto computePointLightContribution = [&](const Vec3f &light_pos,
+                                           const Vec3f &light_flux) -> Vec3f {
     Float dist_to_light = Norm(light_pos - interaction.p);
     Vec3f light_dir = Normalize(light_pos - interaction.p);
     auto test_ray = DifferentialRay(interaction.p, light_dir);
@@ -137,9 +172,60 @@ Vec3f IntersectionTestIntegrator::directLighting(
     return Vec3f(0, 0, 0);
   };
 
-  // Calculate contributions from both light sources
-  color += computeLightContribution(point_light_position1, point_light_flux1);
-  color += computeLightContribution(point_light_position2, point_light_flux2);
+  // Calculate contributions from both point light sources
+  color +=
+      computePointLightContribution(point_light_position1, point_light_flux1);
+  color +=
+      computePointLightContribution(point_light_position2, point_light_flux2);
+
+  // Add area light contribution if it exists
+  if (area_light_positions.size() == 4) {
+    const int area_light_samples = 256; // Number of samples for soft shadows
+    Vec3f area_light_contribution(0.0f);
+
+    for (int i = 0; i < area_light_samples; i++) {
+      // Sample a point on the rectangular area light
+      int a = i / 16;
+      int b = i % 16;
+      Vec3f light_point =
+          Vec3f(-0.46875f + a * 0.0625f, 2.0f, -0.46875f + b * 0.0625f);
+
+      // Calculate light flux (assuming uniform distribution)
+      Vec3f light_flux =
+          area_light_flux / static_cast<Float>(area_light_samples);
+
+      // Calculate direction to light
+      Float dist_to_light = Norm(light_point - interaction.p);
+      Vec3f light_dir = Normalize(light_point - interaction.p);
+      Vec3f dir_from_light = Normalize(interaction.p - light_point);
+
+      // Check for occlusion
+      auto test_ray = DifferentialRay(interaction.p, light_dir);
+      SurfaceInteraction shadow_interaction;
+      if (scene->intersect(test_ray, shadow_interaction)) {
+        if (Norm(shadow_interaction.p - interaction.p) <
+            dist_to_light - 1e-4f) {
+          continue; // This sample is occluded
+        }
+      }
+
+      // Not occluded, calculate contribution for this sample
+      const BSDF *bsdf = interaction.bsdf;
+      bool is_ideal_diffuse =
+          dynamic_cast<const IdealDiffusion *>(bsdf) != nullptr;
+
+      if (bsdf != nullptr && is_ideal_diffuse) {
+        Float cos_theta = std::max(Dot(light_dir, interaction.normal), 0.0f);
+        Float cos_l =
+            std::max(Dot(dir_from_light, Vec3f(0.0f, -1.0f, 0.0f)), 0.0f);
+        area_light_contribution += bsdf->evaluate(interaction) * cos_theta *
+                                   cos_l * light_flux /
+                                   (PI * dist_to_light * dist_to_light);
+      }
+    }
+
+    color += area_light_contribution;
+  }
 
   return color;
 }
