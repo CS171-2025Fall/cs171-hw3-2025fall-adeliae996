@@ -44,6 +44,21 @@ public:
     point_light_flux2 =
         props.getProperty<Vec3f>("point_light_flux2", Vec3f(10.0F, 0.0F, 0.0F));
 
+    // Add area light properties (4 corners of a rectangle)
+    // Replaced with individual Vec3f properties for the four corners
+    area_light_positions.resize(4);
+    area_light_positions[0] = props.getProperty<Vec3f>(
+        "area_light_position0", Vec3f(-0.5F, 2.0F, -0.5F));
+    area_light_positions[1] = props.getProperty<Vec3f>(
+        "area_light_position1", Vec3f(0.5F, 2.0F, -0.5F));
+    area_light_positions[2] = props.getProperty<Vec3f>("area_light_position2",
+                                                       Vec3f(0.5F, 2.0F, 0.5F));
+    area_light_positions[3] = props.getProperty<Vec3f>(
+        "area_light_position3", Vec3f(-0.5F, 2.0F, 0.5F));
+
+    area_light_flux =
+        props.getProperty<Vec3f>("area_light_flux", Vec3f(0.0F, 0.0F, 100.0F));
+
     max_depth = props.getProperty<int>("max_depth", 16);
     spp = props.getProperty<int>("spp", 8);
   }
@@ -61,13 +76,20 @@ public:
        << format("  point_light_flux1     = {}\n", point_light_flux1)
        << format("  point_light_position2 = {}\n", point_light_position2)
        << format("  point_light_flux2     = {}\n", point_light_flux2)
+       << format("  area_light_positions  = [\n");
+    for (const auto &pos : area_light_positions) {
+      ss << format("    {}\n", pos);
+    }
+    ss << format("  ]\n")
+       << format("  area_light_flux       = {}\n", area_light_flux)
        << format("  max_depth           = {}\n", max_depth)
        << format("  spp                 = {}\n", spp) << "]";
     return ss.str();
   }
 
   /// @brief Compute direct lighting at the interaction point
-  Vec3f directLighting(ref<Scene> scene, SurfaceInteraction &interaction) const;
+  Vec3f directLighting(ref<Scene> scene, SurfaceInteraction &interaction,
+                       Sampler &sampler) const;
 
 protected:
   /// The position of the point light
@@ -81,6 +103,12 @@ protected:
 
   /// The radiance of the second point light
   Vec3f point_light_flux2;
+
+  /// The positions of the four corners of the area light (rectangular)
+  std::vector<Vec3f> area_light_positions;
+
+  /// The total flux of the area light
+  Vec3f area_light_flux;
 
   int max_depth, spp;
 };
