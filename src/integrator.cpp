@@ -191,8 +191,7 @@ Vec3f IntersectionTestIntegrator::directLighting(
           Vec3f(-0.46875f + a * 0.0625f, 2.0f, -0.46875f + b * 0.0625f);
 
       // Calculate light flux (assuming uniform distribution)
-      Vec3f light_flux =
-          area_light_flux / static_cast<Float>(area_light_samples);
+      Vec3f light_radiance = area_light_flux / PI;
 
       // Calculate direction to light
       Float dist_to_light = Norm(light_point - interaction.p);
@@ -219,12 +218,12 @@ Vec3f IntersectionTestIntegrator::directLighting(
         Float cos_l =
             std::max(Dot(dir_from_light, Vec3f(0.0f, -1.0f, 0.0f)), 0.0f);
         area_light_contribution += bsdf->evaluate(interaction) * cos_theta *
-                                   cos_l * light_flux /
-                                   (PI * dist_to_light * dist_to_light);
+                                   cos_l * light_radiance /
+                                   (dist_to_light * dist_to_light);
       }
     }
 
-    color += area_light_contribution;
+    color += area_light_contribution / static_cast<Float>(area_light_samples);
   }
 
   return color;
