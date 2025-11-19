@@ -63,6 +63,13 @@
         0.065,
         0.05
       ]
+    },
+    "image_texture": {
+      "type": "image",
+      "path": "assets/texture.exr",
+      "tex_coordinate_generator": {
+        "type": "uvmapping2d"
+      }
     }
   },
   "materials": {
@@ -81,6 +88,10 @@
     "perfect_refraction": {
       "type": "refraction",
       "eta": 2.0
+    },
+    "textured_diffuse": {
+      "type": "diffuse",
+      "texture_name": "image_texture"
     }
   },
   "objects": [
@@ -107,7 +118,7 @@
     {
       "type": "mesh",
       "path": "assets/cbox/back.obj",
-      "material_name": "grey_diffuse"
+      "material_name": "textured_diffuse"
     },
     {
       "type": "mesh",
