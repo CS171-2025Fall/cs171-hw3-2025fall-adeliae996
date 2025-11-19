@@ -56,8 +56,8 @@ public:
     area_light_positions[3] = props.getProperty<Vec3f>(
         "area_light_position3", Vec3f(-0.5F, 2.0F, 0.5F));
 
-    area_light_flux =
-        props.getProperty<Vec3f>("area_light_flux", Vec3f(0.0F, 0.0F, 100.0F));
+    area_light_flux = props.getProperty<Vec3f>("area_light_flux",
+                                               Vec3f(100.0F, 100.0F, 100.0F));
 
     max_depth = props.getProperty<int>("max_depth", 16);
     spp = props.getProperty<int>("spp", 8);
